@@ -1,3 +1,3 @@
 # music-rec-system
 
-This is a python project
+This is a python project.
