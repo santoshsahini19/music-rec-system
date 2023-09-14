@@ -118,8 +118,6 @@ def generate_random_string(length=10):
 # from spotipy import oauth2
 
 # PORT_NUMBER = 8080
-# SPOTIPY_CLIENT_ID = '1fc2b16593a44fceb944d14f1c93b711'
-# SPOTIPY_CLIENT_SECRET = '0b32301a09ce4a68a0ea12fee9e708b3'
 # SPOTIPY_REDIRECT_URI = 'http://localhost:8080'
 # SCOPE = 'user-library-read'
 # CACHE = '.spotipyoauthcache'
