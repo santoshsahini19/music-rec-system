@@ -1,0 +1,5 @@
+music-app
+.env
+.vscode
+.cache
+__pycache__/
