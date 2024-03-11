@@ -1,4 +1,5 @@
-music-app
+# Ignore virtual environment files
+music-app/
 .env
 .vscode
 .cache
