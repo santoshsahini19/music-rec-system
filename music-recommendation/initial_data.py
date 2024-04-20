@@ -3,6 +3,7 @@ import os
 from dotenv import load_dotenv
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
+import pandas as pd
 
 # Retrieve spotify credentials
 load_dotenv()
@@ -22,12 +23,11 @@ def _get_playlist_data():
     playlistIDs = []
     offset = 0
 
-    
     while (True):
         # Using search request, get playlists data based on query
-        result = sp.search(q="genre%telugu", offset=offset, type="playlist")
+        result = sp.search(q="genre%telugu", limit=50, offset=offset, type="playlist")
         total_number_of_playlists = result["playlists"]["total"]
-        #print(total_number_of_playlists)
+        #print("Number of playlists: ",total_number_of_playlists)
 
         # For each playlist in search result, get the playlistID and append to a list
         for playlist in result["playlists"]["items"]:
@@ -35,10 +35,9 @@ def _get_playlist_data():
             
         # get the last evaluated record since search request will only fetch 50 records at a time
         offset += len(result["playlists"]["items"])
-        #print("offset:",offset) 
         
         # TODO: update offset limit to total_number_of_playlists when getting the data
-        if offset >= 1: 
+        if offset >= total_number_of_playlists: 
             break
     
     return playlistIDs
@@ -82,22 +81,53 @@ def _get_tracks_list(playlist_id):
 
 
 # Get audio features for the track
-def _get_audio_features(track_id):
-    aud_features = sp.audio_features(track_id)
-    # audio = aud_features[0].keys()
+def _get_audio_features(track_ids):
+    '''
+    Retrieves audio features for a list of track ids (max offset = 100)
+    '''
+    aud_features = sp.audio_features(track_ids)
 
-    return aud_features
+    audio_features_list = [{key : audio_features_[key] for key in list(audio_features_.keys())[:13]} for audio_features_ in aud_features]
+
+    return audio_features_list
+
+def batch_lists(track_data):
+    '''
+    This definition 
+    - takes the tracks data as a list
+    - creates a new list where each element in the list contains a sublist with 
+    100 track ids
+    - returns the track id list
+    '''
+    track_id_list = []
+    current_list = []
+
+    for track_dict in track_data:
+        current_list.append(track_dict['track_id'])
+    
+        if len(current_list) == 100:
+            track_id_list.append(current_list)
+            current_list = []
+    
+    # adding remaining lists as a final list
+    if current_list:
+        track_id_list.append(current_list)
+    
+    return track_id_list
 
 
 
 def main():
     
-    #Retrieves all playlist IDs based on genre
+    # STEP 1: RETRIEVE PLAYLIST IDS
+
+    # Retrieves all playlist IDs based on genre in a list
     playlist_ids = _get_playlist_data()
-    # print(playlist_ids)
     print(f'fetched {len(playlist_ids)} playlists')
 
-    # -----------------------------------
+    # STEP 2: GET UNIQUE TRACK DATA FROM PLAYLISTS
+
+    # For each playlist ID - get all the tracks available in that specific playlist
     tracks_data = []
     count = 0
     for playlist_id in playlist_ids:
@@ -109,40 +139,72 @@ def main():
     
     print('-----')
     print(f'fetched {len(tracks_data)} tracks')
-    unique_tracks_data = []
 
+    # remove duplicated tracks
+    unique_tracks_data = []
     [unique_tracks_data.append(item) for item in tracks_data if item not in unique_tracks_data]
 
     print('-----')
     print(f'Unique tracks: {len(unique_tracks_data)}')
 
+    '''
+    Each element in unique_tracks_data list contains a dictionary with the following keys:
+    - track_id
+    - track_name
+    - album_name
+    - artist_name
+    '''
+
+    # STEP 3: GET AUDIO FEATURES
+
+    # create list of track ids in batches of 100
+    track_id_batch_list = batch_lists(unique_tracks_data)
     
 
-    # # Convert and write JSON object to file
-    # # with open("teluguTracks.json", "w") as outfile: 
-    # #     json.dump(unique_tracks_data, outfile)
+    audio_features_list = []
+    for batch in track_id_batch_list:
+        audio_features_list.extend(_get_audio_features(batch))
 
-    # for i in range(len(unique_tracks_data)):
+    print(f'Audio features length: {len(audio_features_list)}')
+    '''
+    Each element in audio_features list contains a dictionary with the following keys:
+    - danceability
+    - energy
+    - key
+    - loudness
+    - mode
+    - speechiness
+    - acousticness
+    - instrumentalness
+    - liveness
+    - valence
+    - tempo
+    - type
+    - id
+    '''
 
-    #     track_id = unique_tracks_data[i]["track_id"]
-    #     audio_features = _get_audio_features(track_id)
+    # STEP 4: CONVERT FETCHED DATA INTO DATAFRAME 
+    # convert both track and audio features to dataframe
+    track_df = pd.DataFrame(unique_tracks_data)
+    audio_feature_df = pd.DataFrame(audio_features_list)
 
-    #     unique_tracks_data[0][i].update(audio_features)
+    # merge both dfs based on track id and drop unnecessary columns
+    merged_df = pd.merge(track_df, audio_feature_df, how='left', left_on='track_id', right_on='id')
+    merged_df.drop(columns=['id', 'type'], inplace=True)
+    print(f'Number of rows and columns in merged dataframe: {merged_df.shape}')
 
+    # CSV file
+    merged_df.to_csv('telugu_songs_data.csv', index=False)
 
-    print(_get_audio_features(["7MtXu7mXRMdICKyTOb8CuR","6FIaAGKucC6rgxpTGNLSBx"]))
     '''
     To do:
     - Get more than 100 songs from a playlist - done
     - Get more than 50 playlists - done
     - Remove duplicates tracks across playlists - done
-    - Get audio features
-    - Save to CSV
+    - Get audio features - done
+    - Merge both audio features and unique track id - done
+    - Save to CSV - done
     '''
-
-    #_------------------------------
-    # print("Audio features")
-    # print(_get_audio_features(playlist_data['items'][0]['track']['id']))
 
 
 if __name__ == "__main__":
