@@ -12,7 +12,7 @@ def _get_playlist_data():
 
     while (True):
         # Using search request, get playlists data based on query
-        result = sp.search(q="genre%telugu", limit=50, offset=offset, type="playlist")
+        result = sp.search(q="genre%telugu", offset=offset, type="playlist")
         total_number_of_playlists = result["playlists"]["total"]
         #print("Number of playlists: ",total_number_of_playlists)
 
@@ -24,7 +24,7 @@ def _get_playlist_data():
         offset += len(result["playlists"]["items"])
         
         # TODO: update offset limit to total_number_of_playlists when getting the data
-        if offset >= 50: 
+        if offset >= 1: 
             break
     
     return playlistIDs
@@ -44,7 +44,7 @@ def _get_tracks_list(playlist_id):
     offset = 0
     while (True):
         # fetches all tracks available in the playlist
-        tracks_api_resp = sp.playlist_tracks(playlist_id, offset=offset)
+        tracks_api_resp = sp.playlist_items(playlist_id, offset=offset)
         total_tracks_in_playlist = tracks_api_resp['total']
 
         # iterate over each track and retrieve meta data

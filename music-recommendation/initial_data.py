@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import pandas as pd
+from datetime import datetime
 
 # Retrieve spotify credentials
 load_dotenv()
@@ -87,6 +88,8 @@ def _get_audio_features(track_ids):
     '''
     aud_features = sp.audio_features(track_ids)
 
+    aud_features = list(filter(lambda x: x is not None, aud_features))
+
     audio_features_list = [{key : audio_features_[key] for key in list(audio_features_.keys())[:13]} for audio_features_ in aud_features]
 
     return audio_features_list
@@ -118,6 +121,9 @@ def batch_lists(track_data):
 
 
 def main():
+
+    start_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print("Start time:", start_time)
     
     # STEP 1: RETRIEVE PLAYLIST IDS
 
@@ -147,6 +153,10 @@ def main():
     print('-----')
     print(f'Unique tracks: {len(unique_tracks_data)}')
 
+    # Convert and write JSON object to file
+    with open("teluguTracks.json", "w") as outfile: 
+        json.dump(unique_tracks_data, outfile)
+
     '''
     Each element in unique_tracks_data list contains a dictionary with the following keys:
     - track_id
@@ -166,6 +176,10 @@ def main():
         audio_features_list.extend(_get_audio_features(batch))
 
     print(f'Audio features length: {len(audio_features_list)}')
+
+    # Convert and write JSON object to file
+    with open("teluguTracks-audio-features.json", "w") as outfile: 
+        json.dump(audio_features_list, outfile)
     '''
     Each element in audio_features list contains a dictionary with the following keys:
     - danceability
@@ -195,6 +209,9 @@ def main():
 
     # CSV file
     merged_df.to_csv('telugu_songs_data.csv', index=False)
+        
+    end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print("End time:", end_time)
 
     '''
     To do:
@@ -205,6 +222,8 @@ def main():
     - Merge both audio features and unique track id - done
     - Save to CSV - done
     '''
+
+    
 
 
 if __name__ == "__main__":
