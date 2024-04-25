@@ -3,3 +3,6 @@ venv
 .vscode
 .cache
 __pycache__/
+telugu_songs_data.csv
+teluguTracks.json
+teluguTracks-audio-features.json
